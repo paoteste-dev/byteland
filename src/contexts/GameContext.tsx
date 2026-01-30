@@ -52,13 +52,13 @@ function gameReducer(state: GameState, action: GameAction): GameState {
       };
     
     case 'SELECT_REGION':
-      return { ...state, selectedRegion: action.payload, screen: 'region' };
+      return { ...state, selectedRegion: action.payload, screen: 'exploration' };
     
     case 'START_COMBAT':
       return { ...state, combat: action.payload, screen: 'combat' };
     
     case 'END_COMBAT':
-      return { ...state, combat: null, screen: 'region' };
+      return { ...state, combat: null, screen: 'exploration' };
     
     case 'UPDATE_PLAYER':
       return state.player
