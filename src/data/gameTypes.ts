@@ -96,6 +96,7 @@ export type GameScreen =
   | 'starterSelect' 
   | 'worldMap' 
   | 'region' 
+  | 'exploration'
   | 'combat' 
   | 'capture' 
   | 'collection' 
