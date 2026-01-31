@@ -1,18 +1,12 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGame } from '@/contexts/GameContext';
 import { useKeyboardMovement } from '@/hooks/useKeyboardMovement';
 import { getRegionById } from '@/data/regions';
 import { allDefendos, enemies } from '@/data/defendos';
+import { getMapForRegion } from '@/data/mapConfig';
+import { heroConfig, getCreatureSprite, getDirectionFrom8, Direction8 } from '@/data/spriteConfig';
 import { ArrowLeft, Heart, Star, MapPin } from 'lucide-react';
-
-// Import assets
-import heroSprite from '@/assets/characters/hero-sprite.png';
-import vilaDosDadosBg from '@/assets/maps/vila-dos-dados-bg.jpg';
-import passbitSprite from '@/assets/defendos/passbit.png';
-import linkletSprite from '@/assets/defendos/linklet.png';
-import phishlingSprite from '@/assets/enemies/phishling.png';
-import clickbaiterSprite from '@/assets/enemies/clickbaiter.png';
 
 interface Creature {
   id: string;
@@ -24,15 +18,6 @@ interface Creature {
   type: string;
 }
 
-const creatureSprites: Record<string, string> = {
-  passbit: passbitSprite,
-  linklet: linkletSprite,
-  phishling: phishlingSprite,
-  clickbaiter: clickbaiterSprite,
-};
-
-const MAP_WIDTH = 1920;
-const MAP_HEIGHT = 1080;
 const PLAYER_SIZE = 64;
 const CREATURE_SIZE = 56;
 const INTERACTION_DISTANCE = 80;
@@ -41,6 +26,7 @@ export function ExplorationScreen() {
   const { state, dispatch } = useGame();
   const { player, selectedRegion } = state;
   const region = selectedRegion ? getRegionById(selectedRegion) : null;
+  const mapConfig = selectedRegion ? getMapForRegion(selectedRegion) : null;
   
   const [creatures, setCreatures] = useState<Creature[]>([]);
   const [nearbyCreature, setNearbyCreature] = useState<Creature | null>(null);
@@ -49,11 +35,15 @@ export function ExplorationScreen() {
   
   const containerRef = useState<HTMLDivElement | null>(null);
 
+  const [direction8, setDirection8] = useState<Direction8>('south');
+
   // Initialize creatures for the region
   useEffect(() => {
-    if (!region) return;
+    if (!region || !mapConfig) return;
     
     const spawnCreatures: Creature[] = [];
+    const mapWidth = mapConfig.width;
+    const mapHeight = mapConfig.height;
     
     // Spawn wild Defendos
     region.wildDefendos.forEach((defendoId, index) => {
@@ -62,9 +52,9 @@ export function ExplorationScreen() {
         spawnCreatures.push({
           id: `wild-${defendoId}-${index}`,
           name: defendo.name,
-          x: 300 + Math.random() * (MAP_WIDTH - 600),
-          y: 200 + Math.random() * (MAP_HEIGHT - 400),
-          sprite: creatureSprites[defendoId] || passbitSprite,
+          x: 300 + Math.random() * (mapWidth - 600),
+          y: 200 + Math.random() * (mapHeight - 400),
+          sprite: getCreatureSprite(defendoId),
           isEnemy: false,
           type: defendo.type,
         });
@@ -78,9 +68,9 @@ export function ExplorationScreen() {
         spawnCreatures.push({
           id: `enemy-${enemyId}-${index}`,
           name: enemy.name,
-          x: 400 + Math.random() * (MAP_WIDTH - 800),
-          y: 300 + Math.random() * (MAP_HEIGHT - 600),
-          sprite: creatureSprites[enemyId] || phishlingSprite,
+          x: 400 + Math.random() * (mapWidth - 800),
+          y: 300 + Math.random() * (mapHeight - 600),
+          sprite: getCreatureSprite(enemyId),
           isEnemy: true,
           type: enemy.type,
         });
@@ -92,28 +82,39 @@ export function ExplorationScreen() {
       spawnCreatures.push({
         id: `boss-${region.boss.id}`,
         name: region.boss.name,
-        x: MAP_WIDTH / 2,
+        x: mapWidth / 2,
         y: 200,
-        sprite: creatureSprites[region.boss.id] || phishlingSprite,
+        sprite: getCreatureSprite(region.boss.id),
         isEnemy: true,
         type: region.boss.type,
       });
     }
     
     setCreatures(spawnCreatures);
-  }, [region]);
+  }, [region, mapConfig]);
 
   // Player movement
-  const { position, direction, isMoving } = useKeyboardMovement({
-    initialPosition: { x: MAP_WIDTH / 2, y: MAP_HEIGHT - 200 },
+  const mapWidth = mapConfig?.width || 1920;
+  const mapHeight = mapConfig?.height || 1080;
+
+  const { position, direction, isMoving, velocity } = useKeyboardMovement({
+    initialPosition: { x: mapWidth / 2, y: mapHeight - 200 },
     speed: 5,
     bounds: {
       minX: PLAYER_SIZE / 2,
-      maxX: MAP_WIDTH - PLAYER_SIZE / 2,
+      maxX: mapWidth - PLAYER_SIZE / 2,
       minY: PLAYER_SIZE / 2,
-      maxY: MAP_HEIGHT - PLAYER_SIZE / 2,
+      maxY: mapHeight - PLAYER_SIZE / 2,
     },
   });
+
+  // Update 8-direction based on velocity
+  useEffect(() => {
+    if (velocity.x !== 0 || velocity.y !== 0) {
+      const newDir = getDirectionFrom8(velocity.x, velocity.y);
+      setDirection8(newDir);
+    }
+  }, [velocity]);
 
   // Update viewport to follow player
   useEffect(() => {
@@ -124,11 +125,11 @@ export function ExplorationScreen() {
     let offsetY = position.y - viewportHeight / 2;
     
     // Clamp viewport
-    offsetX = Math.max(0, Math.min(MAP_WIDTH - viewportWidth, offsetX));
-    offsetY = Math.max(0, Math.min(MAP_HEIGHT - viewportHeight, offsetY));
+    offsetX = Math.max(0, Math.min(mapWidth - viewportWidth, offsetX));
+    offsetY = Math.max(0, Math.min(mapHeight - viewportHeight, offsetY));
     
     setViewportOffset({ x: offsetX, y: offsetY });
-  }, [position]);
+  }, [position, mapWidth, mapHeight]);
 
   // Check for nearby creatures
   useEffect(() => {
@@ -204,18 +205,16 @@ export function ExplorationScreen() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleInteract, dispatch]);
 
-  // Get player sprite position based on direction
+  // Get player sprite position based on 8-direction
   const getSpriteOffset = () => {
-    switch (direction) {
-      case 'down': return { x: 0, y: 0 };
-      case 'right': return { x: 1, y: 0 };
-      case 'up': return { x: 0, y: 1 };
-      case 'left': return { x: 1, y: 1 };
-      default: return { x: 0, y: 0 };
+    const dirConfig = heroConfig.directions[direction8];
+    if (dirConfig) {
+      return { x: dirConfig.col, y: dirConfig.row };
     }
+    return { x: 0, y: 1 }; // Default to south
   };
 
-  if (!region || !player) {
+  if (!region || !player || !mapConfig) {
     return null;
   }
 
@@ -227,15 +226,15 @@ export function ExplorationScreen() {
       <div 
         className="relative"
         style={{
-          width: MAP_WIDTH,
-          height: MAP_HEIGHT,
+          width: mapConfig.width,
+          height: mapConfig.height,
           transform: `translate(${-viewportOffset.x}px, ${-viewportOffset.y}px)`,
           transition: 'transform 0.1s ease-out',
         }}
       >
         {/* Background Map */}
         <img 
-          src={vilaDosDadosBg}
+          src={mapConfig.background}
           alt={region.name}
           className="absolute inset-0 w-full h-full object-cover"
           draggable={false}
@@ -308,9 +307,9 @@ export function ExplorationScreen() {
           <div
             className="w-full h-full bg-no-repeat"
             style={{
-              backgroundImage: `url(${heroSprite})`,
-              backgroundSize: '200% 200%',
-              backgroundPosition: `${spriteOffset.x * 100}% ${spriteOffset.y * 100}%`,
+              backgroundImage: `url(${heroConfig.image})`,
+              backgroundSize: '400% 200%', // 4 columns x 2 rows
+              backgroundPosition: `${(spriteOffset.x / 3) * 100}% ${spriteOffset.y * 100}%`,
             }}
           />
           {/* Player shadow */}
@@ -396,7 +395,7 @@ export function ExplorationScreen() {
                 className="w-12 h-12 bg-muted rounded-lg flex items-center justify-center"
               >
                 <img 
-                  src={creatureSprites[defendo.id] || passbitSprite}
+                  src={getCreatureSprite(defendo.id)}
                   alt={defendo.name}
                   className="w-10 h-10 object-contain"
                 />
