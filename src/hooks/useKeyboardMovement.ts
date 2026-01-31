@@ -26,6 +26,7 @@ export function useKeyboardMovement({
   const [position, setPosition] = useState<Position>(initialPosition);
   const [direction, setDirection] = useState<'down' | 'up' | 'left' | 'right'>('down');
   const [isMoving, setIsMoving] = useState(false);
+  const [velocity, setVelocity] = useState<Position>({ x: 0, y: 0 });
   const keysPressed = useRef<Set<string>>(new Set());
   const animationFrame = useRef<number>();
   const lastUpdate = useRef<number>(0);
@@ -55,6 +56,9 @@ export function useKeyboardMovement({
         dx += speed;
         newDirection = 'right';
       }
+      
+      // Update velocity for 8-direction detection
+      setVelocity({ x: dx, y: dy });
       
       if (dx !== 0 || dy !== 0) {
         setIsMoving(true);
@@ -108,5 +112,5 @@ export function useKeyboardMovement({
     };
   }, [updatePosition]);
 
-  return { position, direction, isMoving, setPosition };
+  return { position, direction, isMoving, velocity, setPosition };
 }

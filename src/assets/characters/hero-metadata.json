@@ -1,0 +1,90 @@
+{
+  "character": {
+    "name": "CyberDefender",
+    "description": "Jovem herói de cibersegurança que protege ByteLand contra ameaças digitais",
+    "style": "pixel_art_48x48",
+    "theme": "cybersecurity_hero"
+  },
+  "sprite_sheet": {
+    "path": "src/assets/characters/hero-8dir.png",
+    "frame_width": 128,
+    "frame_height": 128,
+    "columns": 4,
+    "rows": 2
+  },
+  "directions": [
+    {
+      "name": "north",
+      "row": 0,
+      "column": 0,
+      "description": "Olhando para cima (norte)"
+    },
+    {
+      "name": "northeast",
+      "row": 0,
+      "column": 1,
+      "description": "Olhando para nordeste (diagonal)"
+    },
+    {
+      "name": "east",
+      "row": 0,
+      "column": 2,
+      "description": "Olhando para direita (leste)"
+    },
+    {
+      "name": "southeast",
+      "row": 0,
+      "column": 3,
+      "description": "Olhando para sudeste (diagonal)"
+    },
+    {
+      "name": "south",
+      "row": 1,
+      "column": 0,
+      "description": "Olhando para baixo (sul)"
+    },
+    {
+      "name": "southwest",
+      "row": 1,
+      "column": 1,
+      "description": "Olhando para sudoeste (diagonal)"
+    },
+    {
+      "name": "west",
+      "row": 1,
+      "column": 2,
+      "description": "Olhando para esquerda (oeste)"
+    },
+    {
+      "name": "northwest",
+      "row": 1,
+      "column": 3,
+      "description": "Olhando para noroeste (diagonal)"
+    }
+  ],
+  "keypoints": {
+    "head": { "x": 24, "y": 8 },
+    "body": { "x": 24, "y": 24 },
+    "leftHand": { "x": 12, "y": 24 },
+    "rightHand": { "x": 36, "y": 24 },
+    "leftFoot": { "x": 16, "y": 44 },
+    "rightFoot": { "x": 32, "y": 44 }
+  },
+  "hitbox": {
+    "width": 32,
+    "height": 32,
+    "offsetX": 8,
+    "offsetY": 12
+  },
+  "appearance": {
+    "outfit": "cyberpunk_jacket",
+    "accessories": ["neon_visor", "tech_boots"],
+    "colors": {
+      "primary": "#3B82F6",
+      "secondary": "#8B5CF6",
+      "accent": "#22C55E",
+      "dark": "#1E1E2E"
+    },
+    "hair": "styled_hacker"
+  }
+}
