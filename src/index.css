@@ -288,6 +288,42 @@
   .animate-wiggle {
     animation: wiggle 0.5s ease-in-out infinite;
   }
+
+  .animate-spin-slow {
+    animation: spin 4s linear infinite;
+  }
+
+  .animate-character-walk {
+    animation: character-walk 0.15s ease-in-out;
+  }
+
+  .animate-arm-swing {
+    animation: arm-swing 0.3s ease-in-out infinite;
+  }
+
+  .animate-arm-swing-reverse {
+    animation: arm-swing-reverse 0.3s ease-in-out infinite;
+  }
+
+  .animate-leg-walk {
+    animation: leg-walk 0.15s ease-in-out infinite;
+  }
+
+  .animate-leg-walk-reverse {
+    animation: leg-walk-reverse 0.15s ease-in-out infinite;
+  }
+
+  .animate-creature-idle {
+    animation: creature-idle 1.5s ease-in-out infinite;
+  }
+
+  .animate-float-particle {
+    animation: float-particle 2s ease-in-out infinite;
+  }
+
+  .animate-scroll-data {
+    animation: scroll-data 3s linear infinite;
+  }
 }
 
 @keyframes float {
@@ -312,4 +348,60 @@
 @keyframes wiggle {
   0%, 100% { transform: rotate(-3deg); }
   50% { transform: rotate(3deg); }
+}
+
+@keyframes character-walk {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+@keyframes arm-swing {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(15deg); }
+}
+
+@keyframes arm-swing-reverse {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-15deg); }
+}
+
+@keyframes leg-walk {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(-2px); }
+}
+
+@keyframes leg-walk-reverse {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+
+@keyframes creature-idle {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-3px) scale(1.02); }
+}
+
+@keyframes float-particle {
+  0%, 100% { 
+    transform: translateY(0) scale(1);
+    opacity: 0.8;
+  }
+  50% { 
+    transform: translateY(-8px) scale(0.7);
+    opacity: 0.4;
+  }
+}
+
+@keyframes scroll-data {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-100%); }
+}
+
+@keyframes firewall-flicker {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+
+@keyframes water-flow {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(6px); }
 }

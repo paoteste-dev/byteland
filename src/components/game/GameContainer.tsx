@@ -4,7 +4,7 @@ import { IntroScreen } from './IntroScreen';
 import { StarterSelectScreen } from './StarterSelectScreen';
 import { WorldMapScreen } from './WorldMapScreen';
 import { RegionScreen } from './RegionScreen';
-import { ExplorationScreen } from './ExplorationScreen';
+import { TileExplorationScreen } from './TileExplorationScreen';
 import { CombatScreen } from './CombatScreen';
 import { CollectionScreen } from './CollectionScreen';
 import { EncyclopediaScreen } from './EncyclopediaScreen';
@@ -24,7 +24,7 @@ function GameScreens() {
     case 'region':
       return <RegionScreen />;
     case 'exploration':
-      return <ExplorationScreen />;
+      return <TileExplorationScreen />;
     case 'combat':
       return <CombatScreen />;
     case 'collection':
