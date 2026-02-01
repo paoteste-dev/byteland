@@ -120,6 +120,36 @@ export const enemies: Enemy[] = [
     isBoss: false
   },
   {
+    id: 'spambot',
+    name: 'SpamBot',
+    type: 'network',
+    description: 'Um robô que envia spam sem parar.',
+    stats: { hp: 28, maxHp: 28, attack: 9, defense: 7, speed: 11 },
+    abilities: ['Flood de Mensagens', 'Caixa Cheia'],
+    sprite: 'spambot',
+    isBoss: false
+  },
+  {
+    id: 'malware',
+    name: 'Malware Entity',
+    type: 'malware',
+    description: 'Uma entidade corrompida que infecta sistemas.',
+    stats: { hp: 35, maxHp: 35, attack: 12, defense: 8, speed: 9 },
+    abilities: ['Infecção', 'Corrupção de Dados'],
+    sprite: 'malware',
+    isBoss: false
+  },
+  {
+    id: 'datathief',
+    name: 'DataThief',
+    type: 'social',
+    description: 'Um ladrão furtivo que rouba dados pessoais.',
+    stats: { hp: 32, maxHp: 32, attack: 11, defense: 6, speed: 13 },
+    abilities: ['Roubo Silencioso', 'Exfiltração'],
+    sprite: 'datathief',
+    isBoss: false
+  },
+  {
     id: 'phishling-alfa',
     name: 'Phishling Alfa',
     type: 'social',

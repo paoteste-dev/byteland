@@ -324,6 +324,18 @@
   .animate-scroll-data {
     animation: scroll-data 3s linear infinite;
   }
+
+  .animate-sprite-idle {
+    animation: sprite-idle 2s ease-in-out infinite;
+  }
+
+  .animate-sprite-walk {
+    animation: sprite-walk 0.3s ease-in-out infinite;
+  }
+
+  .animate-sprite-enemy-idle {
+    animation: sprite-enemy-idle 1.5s ease-in-out infinite;
+  }
 }
 
 @keyframes float {
@@ -404,4 +416,23 @@
 @keyframes water-flow {
   0% { transform: translateX(0); }
   100% { transform: translateX(6px); }
+}
+
+@keyframes sprite-idle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes sprite-walk {
+  0%, 100% { transform: translateY(0) scale(1); }
+  25% { transform: translateY(-3px) scale(1.02); }
+  50% { transform: translateY(0) scale(1); }
+  75% { transform: translateY(-3px) scale(1.02); }
+}
+
+@keyframes sprite-enemy-idle {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  25% { transform: translateY(-2px) rotate(-2deg); }
+  50% { transform: translateY(0) rotate(0deg); }
+  75% { transform: translateY(-2px) rotate(2deg); }
 }
