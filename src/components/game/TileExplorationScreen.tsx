@@ -4,10 +4,12 @@ import { useGame } from '@/contexts/GameContext';
 import { useTileMovement } from '@/hooks/useTileMovement';
 import { getRegionById } from '@/data/regions';
 import { allDefendos, enemies } from '@/data/defendos';
-import { TileRenderer } from './tiles/TileRenderer';
+import { PixelArtTile } from './tiles/PixelArtTile';
+import { MapDecorations } from './tiles/MapDecorations';
+import { SpriteCharacter } from './characters/SpriteCharacter';
 import { AnimatedCharacter, Direction } from './characters/AnimatedCharacter';
 import { generateTileMap, TILE_SIZE, TileMapData, regionThemes } from '@/data/tileMapConfig';
-import { ArrowLeft, Heart, MapPin, AlertTriangle, Star } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, AlertTriangle, Star, Zap } from 'lucide-react';
 
 interface Creature {
   id: string;
@@ -15,11 +17,12 @@ interface Creature {
   tileX: number;
   tileY: number;
   isEnemy: boolean;
+  isBoss: boolean;
   variant: string;
   direction: Direction;
 }
 
-const INTERACTION_RANGE = 1; // tiles
+const INTERACTION_RANGE = 1;
 
 export function TileExplorationScreen() {
   const { state, dispatch } = useGame();
@@ -50,11 +53,9 @@ export function TileExplorationScreen() {
     region.wildDefendos.forEach((defendoId, index) => {
       const defendo = allDefendos.find(d => d.id === defendoId);
       if (defendo) {
-        // Find a valid spawn position
         let spawnX = 4 + Math.floor(Math.random() * (tileMap.width - 8));
         let spawnY = 4 + Math.floor(Math.random() * (tileMap.height - 8));
         
-        // Avoid spawn point
         while (
           Math.abs(spawnX - tileMap.spawnPoint.x) < 3 && 
           Math.abs(spawnY - tileMap.spawnPoint.y) < 3
@@ -69,6 +70,7 @@ export function TileExplorationScreen() {
           tileX: spawnX,
           tileY: spawnY,
           isEnemy: false,
+          isBoss: false,
           variant: defendoId,
           direction: 'down',
         });
@@ -88,6 +90,7 @@ export function TileExplorationScreen() {
           tileX: spawnX,
           tileY: spawnY,
           isEnemy: true,
+          isBoss: enemy.isBoss || false,
           variant: enemyId,
           direction: 'down',
         });
@@ -102,6 +105,7 @@ export function TileExplorationScreen() {
         tileX: Math.floor(tileMap.width / 2),
         tileY: 3,
         isEnemy: true,
+        isBoss: true,
         variant: region.boss.id,
         direction: 'down',
       });
@@ -150,8 +154,7 @@ export function TileExplorationScreen() {
   const { position, direction, isMoving, setPosition } = useTileMovement({
     initialPosition: tileMap?.spawnPoint || { x: 12, y: 15 },
     tileMap: tileMap || { id: '', width: 24, height: 18, tiles: [], spawnPoint: { x: 12, y: 15 }, theme },
-    onMove: (pos, dir) => {
-      // Check for nearby creatures
+    onMove: (pos) => {
       let closest: Creature | null = null;
       creatures.forEach(creature => {
         const dx = Math.abs(creature.tileX - pos.x);
@@ -184,7 +187,6 @@ export function TileExplorationScreen() {
     let offsetX = position.x * TILE_SIZE - containerWidth / 2 + TILE_SIZE / 2;
     let offsetY = position.y * TILE_SIZE - containerHeight / 2 + TILE_SIZE / 2;
     
-    // Clamp camera
     offsetX = Math.max(0, Math.min(mapPixelWidth - containerWidth, offsetX));
     offsetY = Math.max(0, Math.min(mapPixelHeight - containerHeight, offsetY));
     
@@ -204,7 +206,7 @@ export function TileExplorationScreen() {
     setNearbyCreature(closest);
   }, [position, creatures]);
   
-  // Memoized tile grid
+  // Memoized tile grid with pixel art tiles
   const tileGrid = useMemo(() => {
     if (!tileMap) return null;
     
@@ -212,7 +214,7 @@ export function TileExplorationScreen() {
       <>
         {tileMap.tiles.map((row, y) => (
           row.map((tileType, x) => (
-            <TileRenderer
+            <PixelArtTile
               key={`${x}-${y}`}
               type={tileType}
               x={x}
@@ -234,7 +236,17 @@ export function TileExplorationScreen() {
   }
   
   return (
-    <div className="fixed inset-0 overflow-hidden bg-black" ref={containerRef}>
+    <div className="fixed inset-0 overflow-hidden" ref={containerRef}
+      style={{ backgroundColor: theme.floorColor }}
+    >
+      {/* Background gradient overlay */}
+      <div 
+        className="absolute inset-0 pointer-events-none"
+        style={{
+          background: `radial-gradient(ellipse at 50% 0%, ${theme.glowColor}20 0%, transparent 50%)`,
+        }}
+      />
+      
       {/* Game World */}
       <div 
         className="relative"
@@ -248,35 +260,47 @@ export function TileExplorationScreen() {
         {/* Tile Map */}
         {tileGrid}
         
-        {/* Creatures */}
+        {/* Map Decorations */}
+        <MapDecorations 
+          mapWidth={tileMap.width}
+          mapHeight={tileMap.height}
+          theme={tileMap.theme}
+          regionId={selectedRegion || 'vila-dos-dados'}
+        />
+        
+        {/* Creatures with PNG sprites */}
         {creatures.map(creature => (
           <div key={creature.id} className="relative">
-            <AnimatedCharacter
-              type={creature.isEnemy ? 'enemy' : 'defendo'}
-              variant={creature.variant}
+            <SpriteCharacter
+              type={creature.isBoss ? 'boss' : creature.isEnemy ? 'enemy' : 'defendo'}
+              spriteId={creature.variant}
               x={creature.tileX}
               y={creature.tileY}
               direction={creature.direction}
-              isAnimating={true}
+              size={creature.isBoss ? TILE_SIZE + 8 : TILE_SIZE - 4}
             />
             {/* Indicator above creature */}
             <div 
               className="absolute z-20 flex items-center justify-center"
               style={{
-                left: creature.tileX * TILE_SIZE + TILE_SIZE / 2 - 8,
-                top: creature.tileY * TILE_SIZE - 16,
+                left: creature.tileX * TILE_SIZE + TILE_SIZE / 2 - 10,
+                top: creature.tileY * TILE_SIZE - 20,
               }}
             >
-              {creature.isEnemy ? (
-                <AlertTriangle className="h-4 w-4 text-destructive animate-bounce" />
+              {creature.isBoss ? (
+                <div className="flex flex-col items-center animate-bounce">
+                  <span className="text-lg">👑</span>
+                </div>
+              ) : creature.isEnemy ? (
+                <AlertTriangle className="h-5 w-5 text-destructive animate-bounce drop-shadow-lg" />
               ) : (
-                <Star className="h-4 w-4 text-yellow-400 fill-yellow-400 animate-spin-slow" />
+                <Star className="h-5 w-5 text-yellow-400 fill-yellow-400 animate-spin-slow drop-shadow-lg" />
               )}
             </div>
           </div>
         ))}
         
-        {/* Player Character */}
+        {/* Player Character - Animated CSS version */}
         <AnimatedCharacter
           type="hero"
           x={position.x}
@@ -287,59 +311,63 @@ export function TileExplorationScreen() {
       </div>
       
       {/* UI Overlay - Top Bar */}
-      <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/80 to-transparent p-3">
+      <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'worldMap' })}
-              className="p-2 rounded-lg bg-card/90 hover:bg-card transition-colors border border-border"
+              className="p-2.5 rounded-xl bg-card/95 hover:bg-card transition-all border-2 border-border hover:scale-105"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="bg-card/90 rounded-lg px-3 py-2 border border-border">
+            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border shadow-lg">
               <div className="flex items-center gap-2">
-                <MapPin className="h-3 w-3 text-primary" />
-                <span className="font-game-title text-sm">{region.name}</span>
+                <MapPin className="h-4 w-4 text-primary" />
+                <span className="font-game-title text-base">{region.name}</span>
               </div>
             </div>
           </div>
           
-          {/* Health display */}
-          <div className="bg-card/90 rounded-lg px-3 py-2 border border-border flex items-center gap-3">
-            <div className="flex items-center gap-1.5">
-              <Heart className="h-4 w-4 text-red-500 fill-red-500" />
-              <div className="flex gap-0.5">
+          {/* Stats display */}
+          <div className="flex items-center gap-3">
+            {/* Health */}
+            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border flex items-center gap-3 shadow-lg">
+              <Heart className="h-5 w-5 text-red-500 fill-red-500" />
+              <div className="flex gap-1">
                 {[1, 2, 3].map(i => (
                   <div 
                     key={i}
-                    className={`w-5 h-2 rounded-sm ${
+                    className={`w-6 h-3 rounded transition-colors ${
                       i <= Math.ceil((player.team[0]?.stats.hp / player.team[0]?.stats.maxHp) * 3) 
-                        ? 'bg-green-500' 
+                        ? 'bg-green-500 shadow-sm shadow-green-500/50' 
                         : 'bg-gray-600'
                     }`}
                   />
                 ))}
               </div>
             </div>
-            <div className="text-xs text-muted-foreground">
-              Nv. <span className="text-foreground font-bold">{player.level}</span>
+            
+            {/* Level */}
+            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border flex items-center gap-2 shadow-lg">
+              <Zap className="h-4 w-4 text-yellow-500" />
+              <span className="text-sm font-bold">Nv. {player.level}</span>
             </div>
           </div>
         </div>
       </div>
       
       {/* Controls hint */}
-      <div className="fixed bottom-4 left-4 z-30 bg-card/90 rounded-lg px-3 py-2 border border-border">
-        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-          <div className="flex flex-col items-center gap-0.5">
-            <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">W</kbd>
-            <div className="flex gap-0.5">
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">A</kbd>
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">S</kbd>
-              <kbd className="px-1.5 py-0.5 bg-muted rounded text-[10px] font-mono">D</kbd>
+      <div className="fixed bottom-4 left-4 z-30 bg-card/95 rounded-xl px-4 py-3 border-2 border-border shadow-lg">
+        <div className="flex items-center gap-3 text-sm">
+          <div className="flex flex-col items-center gap-1">
+            <kbd className="px-2 py-1 bg-muted rounded-lg text-xs font-mono font-bold shadow-sm">W</kbd>
+            <div className="flex gap-1">
+              <kbd className="px-2 py-1 bg-muted rounded-lg text-xs font-mono font-bold shadow-sm">A</kbd>
+              <kbd className="px-2 py-1 bg-muted rounded-lg text-xs font-mono font-bold shadow-sm">S</kbd>
+              <kbd className="px-2 py-1 bg-muted rounded-lg text-xs font-mono font-bold shadow-sm">D</kbd>
             </div>
           </div>
-          <span>Mover</span>
+          <span className="text-muted-foreground">Mover</span>
         </div>
       </div>
       
@@ -347,20 +375,27 @@ export function TileExplorationScreen() {
       <AnimatePresence>
         {nearbyCreature && (
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 20, scale: 0.9 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.9 }}
             className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30"
           >
             <button
               onClick={() => handleInteract(position)}
-              className="btn-game-primary flex items-center gap-2 px-4 py-2"
+              className={`flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-white shadow-lg transition-all hover:scale-105 ${
+                nearbyCreature.isEnemy 
+                  ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600' 
+                  : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'
+              }`}
             >
-              <span className="text-sm font-bold">
-                {nearbyCreature.isEnemy ? '⚔️ Batalhar' : '✨ Capturar'}
+              <span className="text-xl">
+                {nearbyCreature.isBoss ? '⚔️' : nearbyCreature.isEnemy ? '🗡️' : '✨'}
               </span>
-              <span className="text-xs opacity-80">{nearbyCreature.name}</span>
-              <kbd className="px-1.5 py-0.5 bg-white/20 rounded text-[10px]">E</kbd>
+              <span className="text-base">
+                {nearbyCreature.isBoss ? 'Desafiar Boss' : nearbyCreature.isEnemy ? 'Batalhar' : 'Capturar'}
+              </span>
+              <span className="text-sm opacity-80">{nearbyCreature.name}</span>
+              <kbd className="px-2 py-1 bg-white/20 rounded-lg text-xs font-mono">E</kbd>
             </button>
           </motion.div>
         )}
@@ -368,26 +403,61 @@ export function TileExplorationScreen() {
       
       {/* Team display */}
       <div className="fixed bottom-4 right-4 z-30">
-        <div className="bg-card/90 rounded-lg p-2 border border-border">
-          <p className="text-[10px] text-muted-foreground mb-1.5">Equipa</p>
-          <div className="flex gap-1.5">
+        <div className="bg-card/95 rounded-xl p-3 border-2 border-border shadow-lg">
+          <p className="text-xs text-muted-foreground mb-2 font-semibold">Equipa</p>
+          <div className="flex gap-2">
             {player.team.slice(0, 3).map((defendo, i) => (
               <div 
                 key={defendo.id + i}
-                className="w-10 h-10 rounded-lg flex items-center justify-center"
+                className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-border/50 overflow-hidden"
                 style={{ backgroundColor: theme.floorAccent }}
               >
-                <AnimatedCharacter
+                <SpriteCharacter
                   type="defendo"
-                  variant={defendo.id}
+                  spriteId={defendo.id}
                   x={0}
                   y={0}
                   direction="down"
-                  size={28}
+                  size={36}
                 />
               </div>
             ))}
           </div>
+        </div>
+      </div>
+      
+      {/* Mini-map (optional) */}
+      <div className="fixed top-20 right-4 z-30 bg-card/90 rounded-xl p-2 border-2 border-border shadow-lg">
+        <div 
+          className="relative rounded overflow-hidden"
+          style={{ 
+            width: 80, 
+            height: 60,
+            backgroundColor: theme.floorColor,
+          }}
+        >
+          {/* Player dot */}
+          <div 
+            className="absolute w-2 h-2 rounded-full bg-blue-400 animate-pulse"
+            style={{
+              left: (position.x / tileMap.width) * 80 - 4,
+              top: (position.y / tileMap.height) * 60 - 4,
+              boxShadow: '0 0 4px rgba(59, 130, 246, 0.8)',
+            }}
+          />
+          {/* Creature dots */}
+          {creatures.map(creature => (
+            <div 
+              key={creature.id}
+              className={`absolute w-1.5 h-1.5 rounded-full ${
+                creature.isBoss ? 'bg-purple-500' : creature.isEnemy ? 'bg-red-400' : 'bg-green-400'
+              }`}
+              style={{
+                left: (creature.tileX / tileMap.width) * 80 - 3,
+                top: (creature.tileY / tileMap.height) * 60 - 3,
+              }}
+            />
+          ))}
         </div>
       </div>
     </div>
