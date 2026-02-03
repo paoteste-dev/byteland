@@ -28,12 +28,16 @@ export function WorldMapScreen() {
   const { state, dispatch } = useGame();
   const { player } = state;
 
-  const handleRegionClick = (regionId: string) => {
-    const region = regions.find(r => r.id === regionId);
-    if (region?.unlocked) {
-      dispatch({ type: 'SELECT_REGION', payload: regionId });
-    }
-  };
+ const handleRegionClick = (regionId: string) => {
+     const region = regions.find(r => r.id === regionId);
+     if (region?.unlocked) {
+       dispatch({ type: 'SELECT_REGION', payload: regionId });
+       // Usar nova exploração Pokémon para primeiras regiões
+       if (regionId === 'vila-dos-dados' || regionId === 'cidade-conectada') {
+         dispatch({ type: 'SET_SCREEN', payload: 'pokemon-exploration' });
+       }
+     }
+   };
 
   return (
     <div className="min-h-screen w-full bg-background">
