@@ -97,6 +97,7 @@ export type GameScreen =
   | 'worldMap' 
   | 'region' 
   | 'exploration'
+  | 'pokemon-exploration'
   | 'combat' 
   | 'capture' 
   | 'collection' 
