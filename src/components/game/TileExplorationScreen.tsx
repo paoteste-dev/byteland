@@ -4,12 +4,12 @@ import { useGame } from '@/contexts/GameContext';
 import { useTileMovement } from '@/hooks/useTileMovement';
 import { getRegionById } from '@/data/regions';
 import { allDefendos, enemies } from '@/data/defendos';
-import { PixelArtTile } from './tiles/PixelArtTile';
-import { MapDecorations } from './tiles/MapDecorations';
-import { SpriteCharacter } from './characters/SpriteCharacter';
-import { AnimatedCharacter, Direction } from './characters/AnimatedCharacter';
+import { PixelVillageTile } from './tiles/PixelVillageTile';
+import { VillageDecorations } from './tiles/VillageDecorations';
+import { PixelHero } from './characters/PixelHero';
+import { PixelCreature } from './characters/PixelCreature';
 import { generateTileMap, TILE_SIZE, TileMapData, regionThemes } from '@/data/tileMapConfig';
-import { ArrowLeft, Heart, MapPin, AlertTriangle, Star, Zap } from 'lucide-react';
+import { ArrowLeft, Heart, MapPin, AlertTriangle, Star, Zap, Shield } from 'lucide-react';
 
 interface Creature {
   id: string;
@@ -19,7 +19,7 @@ interface Creature {
   isEnemy: boolean;
   isBoss: boolean;
   variant: string;
-  direction: Direction;
+  direction: 'up' | 'down' | 'left' | 'right';
 }
 
 const INTERACTION_RANGE = 1;
@@ -39,41 +39,60 @@ export function TileExplorationScreen() {
   // Generate tile map for region
   useEffect(() => {
     if (!selectedRegion) return;
-    const map = generateTileMap(selectedRegion, 24, 18);
+    const map = generateTileMap(selectedRegion, 28, 20);
     setTileMap(map);
   }, [selectedRegion]);
   
-  // Spawn creatures
+  // Spawn creatures with collision awareness
   useEffect(() => {
     if (!region || !tileMap) return;
     
     const spawnedCreatures: Creature[] = [];
+    const occupiedTiles = new Set<string>();
+    
+    // Mark non-walkable tiles as occupied
+    tileMap.tiles.forEach((row, y) => {
+      row.forEach((tile, x) => {
+        if (tile !== 'floor' && tile !== 'data' && tile !== 'boss_zone') {
+          occupiedTiles.add(`${x},${y}`);
+        }
+      });
+    });
+    
+    // Helper to find free spawn position
+    const findFreeSpot = (minX: number, maxX: number, minY: number, maxY: number): { x: number; y: number } | null => {
+      for (let attempts = 0; attempts < 20; attempts++) {
+        const x = minX + Math.floor(Math.random() * (maxX - minX));
+        const y = minY + Math.floor(Math.random() * (maxY - minY));
+        const key = `${x},${y}`;
+        
+        if (!occupiedTiles.has(key) && 
+            Math.abs(x - tileMap.spawnPoint.x) >= 3 || 
+            Math.abs(y - tileMap.spawnPoint.y) >= 3) {
+          occupiedTiles.add(key);
+          return { x, y };
+        }
+      }
+      return null;
+    };
     
     // Spawn wild Defendos
     region.wildDefendos.forEach((defendoId, index) => {
       const defendo = allDefendos.find(d => d.id === defendoId);
       if (defendo) {
-        let spawnX = 4 + Math.floor(Math.random() * (tileMap.width - 8));
-        let spawnY = 4 + Math.floor(Math.random() * (tileMap.height - 8));
-        
-        while (
-          Math.abs(spawnX - tileMap.spawnPoint.x) < 3 && 
-          Math.abs(spawnY - tileMap.spawnPoint.y) < 3
-        ) {
-          spawnX = 4 + Math.floor(Math.random() * (tileMap.width - 8));
-          spawnY = 4 + Math.floor(Math.random() * (tileMap.height - 8));
+        const spot = findFreeSpot(4, tileMap.width - 4, 5, tileMap.height - 5);
+        if (spot) {
+          spawnedCreatures.push({
+            id: `wild-${defendoId}-${index}`,
+            name: defendo.name,
+            tileX: spot.x,
+            tileY: spot.y,
+            isEnemy: false,
+            isBoss: false,
+            variant: defendoId,
+            direction: 'down',
+          });
         }
-        
-        spawnedCreatures.push({
-          id: `wild-${defendoId}-${index}`,
-          name: defendo.name,
-          tileX: spawnX,
-          tileY: spawnY,
-          isEnemy: false,
-          isBoss: false,
-          variant: defendoId,
-          direction: 'down',
-        });
       }
     });
     
@@ -81,29 +100,31 @@ export function TileExplorationScreen() {
     region.enemies.forEach((enemyId, index) => {
       const enemy = enemies.find(e => e.id === enemyId);
       if (enemy) {
-        let spawnX = 3 + Math.floor(Math.random() * (tileMap.width - 6));
-        let spawnY = 3 + Math.floor(Math.random() * (tileMap.height - 6));
-        
-        spawnedCreatures.push({
-          id: `enemy-${enemyId}-${index}`,
-          name: enemy.name,
-          tileX: spawnX,
-          tileY: spawnY,
-          isEnemy: true,
-          isBoss: enemy.isBoss || false,
-          variant: enemyId,
-          direction: 'down',
-        });
+        const spot = findFreeSpot(3, tileMap.width - 3, 4, tileMap.height - 4);
+        if (spot) {
+          spawnedCreatures.push({
+            id: `enemy-${enemyId}-${index}`,
+            name: enemy.name,
+            tileX: spot.x,
+            tileY: spot.y,
+            isEnemy: true,
+            isBoss: enemy.isBoss || false,
+            variant: enemyId,
+            direction: 'down',
+          });
+        }
       }
     });
     
-    // Spawn boss near top
+    // Spawn boss near top center
     if (region.boss) {
+      const bossX = Math.floor(tileMap.width / 2);
+      const bossY = 4;
       spawnedCreatures.push({
         id: `boss-${region.boss.id}`,
         name: region.boss.name,
-        tileX: Math.floor(tileMap.width / 2),
-        tileY: 3,
+        tileX: bossX,
+        tileY: bossY,
         isEnemy: true,
         isBoss: true,
         variant: region.boss.id,
@@ -152,8 +173,8 @@ export function TileExplorationScreen() {
   
   // Tile movement hook
   const { position, direction, isMoving, setPosition } = useTileMovement({
-    initialPosition: tileMap?.spawnPoint || { x: 12, y: 15 },
-    tileMap: tileMap || { id: '', width: 24, height: 18, tiles: [], spawnPoint: { x: 12, y: 15 }, theme },
+    initialPosition: tileMap?.spawnPoint || { x: 14, y: 17 },
+    tileMap: tileMap || { id: '', width: 28, height: 20, tiles: [], spawnPoint: { x: 14, y: 17 }, theme },
     onMove: (pos) => {
       let closest: Creature | null = null;
       creatures.forEach(creature => {
@@ -175,7 +196,7 @@ export function TileExplorationScreen() {
     }
   }, [tileMap, setPosition]);
   
-  // Update camera to follow player
+  // Update camera to follow player smoothly
   useEffect(() => {
     if (!containerRef.current || !tileMap) return;
     
@@ -193,7 +214,7 @@ export function TileExplorationScreen() {
     setCameraOffset({ x: offsetX, y: offsetY });
   }, [position, tileMap]);
   
-  // Check for nearby creatures on position change
+  // Check for nearby creatures
   useEffect(() => {
     let closest: Creature | null = null;
     creatures.forEach(creature => {
@@ -206,7 +227,7 @@ export function TileExplorationScreen() {
     setNearbyCreature(closest);
   }, [position, creatures]);
   
-  // Memoized tile grid with pixel art tiles
+  // Memoized tile grid
   const tileGrid = useMemo(() => {
     if (!tileMap) return null;
     
@@ -214,7 +235,7 @@ export function TileExplorationScreen() {
       <>
         {tileMap.tiles.map((row, y) => (
           row.map((tileType, x) => (
-            <PixelArtTile
+            <PixelVillageTile
               key={`${x}-${y}`}
               type={tileType}
               x={x}
@@ -230,22 +251,40 @@ export function TileExplorationScreen() {
   if (!region || !player || !tileMap) {
     return (
       <div className="fixed inset-0 bg-background flex items-center justify-center">
-        <div className="text-lg animate-pulse">A carregar...</div>
+        <div className="text-lg animate-pulse font-game-title">A carregar ByteLand...</div>
       </div>
     );
   }
   
   return (
     <div className="fixed inset-0 overflow-hidden" ref={containerRef}
-      style={{ backgroundColor: theme.floorColor }}
+      style={{ backgroundColor: 'hsl(220, 35%, 12%)' }}
     >
       {/* Background gradient overlay */}
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
-          background: `radial-gradient(ellipse at 50% 0%, ${theme.glowColor}20 0%, transparent 50%)`,
+          background: `
+            radial-gradient(ellipse at 50% 0%, ${theme.glowColor}15 0%, transparent 40%),
+            radial-gradient(ellipse at 50% 100%, hsl(280, 60%, 20%, 0.3) 0%, transparent 50%)
+          `,
         }}
       />
+      
+      {/* Stars/particles background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 20 }).map((_, i) => (
+          <div
+            key={i}
+            className="absolute w-1 h-1 rounded-full bg-white/30 animate-pulse"
+            style={{
+              left: `${(i * 37) % 100}%`,
+              top: `${(i * 23) % 100}%`,
+              animationDelay: `${i * 0.2}s`,
+            }}
+          />
+        ))}
+      </div>
       
       {/* Game World */}
       <div 
@@ -254,45 +293,44 @@ export function TileExplorationScreen() {
           width: tileMap.width * TILE_SIZE,
           height: tileMap.height * TILE_SIZE,
           transform: `translate(${-cameraOffset.x}px, ${-cameraOffset.y}px)`,
-          transition: 'transform 0.1s ease-out',
+          transition: 'transform 0.15s ease-out',
         }}
       >
         {/* Tile Map */}
         {tileGrid}
         
         {/* Map Decorations */}
-        <MapDecorations 
+        <VillageDecorations 
           mapWidth={tileMap.width}
           mapHeight={tileMap.height}
           theme={tileMap.theme}
           regionId={selectedRegion || 'vila-dos-dados'}
         />
         
-        {/* Creatures with PNG sprites */}
+        {/* Creatures - CSS animated "living" creatures */}
         {creatures.map(creature => (
-          <div key={creature.id} className="relative">
-            <SpriteCharacter
+          <div key={creature.id}>
+            <PixelCreature
               type={creature.isBoss ? 'boss' : creature.isEnemy ? 'enemy' : 'defendo'}
-              spriteId={creature.variant}
+              variant={creature.variant}
               x={creature.tileX}
               y={creature.tileY}
               direction={creature.direction}
-              size={creature.isBoss ? TILE_SIZE + 8 : TILE_SIZE - 4}
             />
             {/* Indicator above creature */}
             <div 
-              className="absolute z-20 flex items-center justify-center"
+              className="absolute z-50 flex items-center justify-center"
               style={{
                 left: creature.tileX * TILE_SIZE + TILE_SIZE / 2 - 10,
-                top: creature.tileY * TILE_SIZE - 20,
+                top: creature.tileY * TILE_SIZE - 24,
               }}
             >
               {creature.isBoss ? (
                 <div className="flex flex-col items-center animate-bounce">
-                  <span className="text-lg">👑</span>
+                  <span className="text-xl drop-shadow-lg" style={{ textShadow: '0 0 8px gold' }}>👑</span>
                 </div>
               ) : creature.isEnemy ? (
-                <AlertTriangle className="h-5 w-5 text-destructive animate-bounce drop-shadow-lg" />
+                <AlertTriangle className="h-5 w-5 text-red-400 animate-bounce drop-shadow-lg" />
               ) : (
                 <Star className="h-5 w-5 text-yellow-400 fill-yellow-400 animate-spin-slow drop-shadow-lg" />
               )}
@@ -300,9 +338,8 @@ export function TileExplorationScreen() {
           </div>
         ))}
         
-        {/* Player Character - Animated CSS version */}
-        <AnimatedCharacter
-          type="hero"
+        {/* Player Character - Redesigned CSS animated hero */}
+        <PixelHero
           x={position.x}
           y={position.y}
           direction={direction}
@@ -311,19 +348,19 @@ export function TileExplorationScreen() {
       </div>
       
       {/* UI Overlay - Top Bar */}
-      <div className="fixed top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/80 via-black/40 to-transparent p-3">
+      <div className="fixed top-0 left-0 right-0 z-40 bg-gradient-to-b from-black/90 via-black/60 to-transparent p-4">
         <div className="max-w-4xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               onClick={() => dispatch({ type: 'SET_SCREEN', payload: 'worldMap' })}
-              className="p-2.5 rounded-xl bg-card/95 hover:bg-card transition-all border-2 border-border hover:scale-105"
+              className="p-2.5 rounded-xl bg-card/95 hover:bg-card transition-all border-2 border-border hover:scale-105 shadow-lg"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
-            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border shadow-lg">
+            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border shadow-lg backdrop-blur-sm">
               <div className="flex items-center gap-2">
                 <MapPin className="h-4 w-4 text-primary" />
-                <span className="font-game-title text-base">{region.name}</span>
+                <span className="font-game-title text-base tracking-wide">{region.name}</span>
               </div>
             </div>
           </div>
@@ -331,16 +368,16 @@ export function TileExplorationScreen() {
           {/* Stats display */}
           <div className="flex items-center gap-3">
             {/* Health */}
-            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border flex items-center gap-3 shadow-lg">
+            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border flex items-center gap-3 shadow-lg backdrop-blur-sm">
               <Heart className="h-5 w-5 text-red-500 fill-red-500" />
               <div className="flex gap-1">
                 {[1, 2, 3].map(i => (
                   <div 
                     key={i}
-                    className={`w-6 h-3 rounded transition-colors ${
+                    className={`w-6 h-3 rounded-sm transition-all ${
                       i <= Math.ceil((player.team[0]?.stats.hp / player.team[0]?.stats.maxHp) * 3) 
-                        ? 'bg-green-500 shadow-sm shadow-green-500/50' 
-                        : 'bg-gray-600'
+                        ? 'bg-gradient-to-r from-green-500 to-emerald-400 shadow-sm shadow-green-500/50' 
+                        : 'bg-gray-700'
                     }`}
                   />
                 ))}
@@ -348,26 +385,32 @@ export function TileExplorationScreen() {
             </div>
             
             {/* Level */}
-            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border flex items-center gap-2 shadow-lg">
+            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border flex items-center gap-2 shadow-lg backdrop-blur-sm">
               <Zap className="h-4 w-4 text-yellow-500" />
               <span className="text-sm font-bold">Nv. {player.level}</span>
+            </div>
+            
+            {/* Defendos count */}
+            <div className="bg-card/95 rounded-xl px-4 py-2.5 border-2 border-border flex items-center gap-2 shadow-lg backdrop-blur-sm">
+              <Shield className="h-4 w-4 text-cyan-400" />
+              <span className="text-sm font-bold">{player.team.length}</span>
             </div>
           </div>
         </div>
       </div>
       
       {/* Controls hint */}
-      <div className="fixed bottom-4 left-4 z-30 bg-card/95 rounded-xl px-4 py-3 border-2 border-border shadow-lg">
-        <div className="flex items-center gap-3 text-sm">
+      <div className="fixed bottom-4 left-4 z-40 bg-card/95 rounded-xl px-4 py-3 border-2 border-border shadow-lg backdrop-blur-sm">
+        <div className="flex items-center gap-4 text-sm">
           <div className="flex flex-col items-center gap-1">
-            <kbd className="px-2 py-1 bg-muted rounded-lg text-xs font-mono font-bold shadow-sm">W</kbd>
+            <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono font-bold shadow-sm border border-border">W</kbd>
             <div className="flex gap-1">
-              <kbd className="px-2 py-1 bg-muted rounded-lg text-xs font-mono font-bold shadow-sm">A</kbd>
-              <kbd className="px-2 py-1 bg-muted rounded-lg text-xs font-mono font-bold shadow-sm">S</kbd>
-              <kbd className="px-2 py-1 bg-muted rounded-lg text-xs font-mono font-bold shadow-sm">D</kbd>
+              <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono font-bold shadow-sm border border-border">A</kbd>
+              <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono font-bold shadow-sm border border-border">S</kbd>
+              <kbd className="px-2 py-1 bg-muted rounded text-xs font-mono font-bold shadow-sm border border-border">D</kbd>
             </div>
           </div>
-          <span className="text-muted-foreground">Mover</span>
+          <span className="text-muted-foreground font-medium">Mover</span>
         </div>
       </div>
       
@@ -378,14 +421,14 @@ export function TileExplorationScreen() {
             initial={{ opacity: 0, y: 20, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
-            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-30"
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40"
           >
             <button
               onClick={() => handleInteract(position)}
-              className={`flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-white shadow-lg transition-all hover:scale-105 ${
+              className={`flex items-center gap-3 px-6 py-3 rounded-xl font-bold text-white shadow-xl transition-all hover:scale-105 border-2 ${
                 nearbyCreature.isEnemy 
-                  ? 'bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600' 
-                  : 'bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600'
+                  ? 'bg-gradient-to-r from-red-600 to-orange-500 hover:from-red-700 hover:to-orange-600 border-red-400/50' 
+                  : 'bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 border-cyan-400/50'
               }`}
             >
               <span className="text-xl">
@@ -394,67 +437,75 @@ export function TileExplorationScreen() {
               <span className="text-base">
                 {nearbyCreature.isBoss ? 'Desafiar Boss' : nearbyCreature.isEnemy ? 'Batalhar' : 'Capturar'}
               </span>
-              <span className="text-sm opacity-80">{nearbyCreature.name}</span>
-              <kbd className="px-2 py-1 bg-white/20 rounded-lg text-xs font-mono">E</kbd>
+              <span className="text-sm opacity-90 font-normal">{nearbyCreature.name}</span>
+              <kbd className="px-2.5 py-1 bg-white/20 rounded text-xs font-mono font-bold border border-white/30">E</kbd>
             </button>
           </motion.div>
         )}
       </AnimatePresence>
       
       {/* Team display */}
-      <div className="fixed bottom-4 right-4 z-30">
-        <div className="bg-card/95 rounded-xl p-3 border-2 border-border shadow-lg">
-          <p className="text-xs text-muted-foreground mb-2 font-semibold">Equipa</p>
+      <div className="fixed bottom-4 right-4 z-40">
+        <div className="bg-card/95 rounded-xl p-3 border-2 border-border shadow-lg backdrop-blur-sm">
+          <p className="text-xs text-muted-foreground mb-2 font-semibold uppercase tracking-wide">Equipa</p>
           <div className="flex gap-2">
             {player.team.slice(0, 3).map((defendo, i) => (
               <div 
                 key={defendo.id + i}
-                className="w-12 h-12 rounded-lg flex items-center justify-center border-2 border-border/50 overflow-hidden"
-                style={{ backgroundColor: theme.floorAccent }}
+                className="w-14 h-14 rounded-lg flex items-center justify-center border-2 border-primary/50 overflow-hidden bg-gradient-to-br from-primary/20 to-secondary/20"
               >
-                <SpriteCharacter
-                  type="defendo"
-                  spriteId={defendo.id}
-                  x={0}
-                  y={0}
-                  direction="down"
-                  size={36}
-                />
+                <div className="w-10 h-10 relative">
+                  <PixelCreature
+                    type="defendo"
+                    variant={defendo.id}
+                    x={0}
+                    y={0}
+                    direction="down"
+                    size={40}
+                  />
+                </div>
               </div>
             ))}
           </div>
         </div>
       </div>
       
-      {/* Mini-map (optional) */}
-      <div className="fixed top-20 right-4 z-30 bg-card/90 rounded-xl p-2 border-2 border-border shadow-lg">
+      {/* Mini-map */}
+      <div className="fixed top-24 right-4 z-40 bg-card/90 rounded-xl p-2 border-2 border-border shadow-lg backdrop-blur-sm">
         <div 
-          className="relative rounded overflow-hidden"
+          className="relative rounded-lg overflow-hidden"
           style={{ 
-            width: 80, 
-            height: 60,
-            backgroundColor: theme.floorColor,
+            width: 100, 
+            height: 75,
+            backgroundColor: 'hsl(220, 30%, 15%)',
           }}
         >
+          {/* Mini-map tiles (simplified) */}
+          <div className="absolute inset-1">
+            {/* Walls on border */}
+            <div className="absolute inset-0 border-2 border-purple-800/60 rounded" />
+          </div>
+          
           {/* Player dot */}
           <div 
-            className="absolute w-2 h-2 rounded-full bg-blue-400 animate-pulse"
+            className="absolute w-2.5 h-2.5 rounded-full bg-blue-400 animate-pulse"
             style={{
-              left: (position.x / tileMap.width) * 80 - 4,
-              top: (position.y / tileMap.height) * 60 - 4,
-              boxShadow: '0 0 4px rgba(59, 130, 246, 0.8)',
+              left: (position.x / tileMap.width) * 100 - 5,
+              top: (position.y / tileMap.height) * 75 - 5,
+              boxShadow: '0 0 6px rgba(59, 130, 246, 0.9)',
             }}
           />
+          
           {/* Creature dots */}
           {creatures.map(creature => (
             <div 
               key={creature.id}
-              className={`absolute w-1.5 h-1.5 rounded-full ${
-                creature.isBoss ? 'bg-purple-500' : creature.isEnemy ? 'bg-red-400' : 'bg-green-400'
+              className={`absolute w-2 h-2 rounded-full ${
+                creature.isBoss ? 'bg-purple-500 animate-pulse' : creature.isEnemy ? 'bg-red-400' : 'bg-green-400'
               }`}
               style={{
-                left: (creature.tileX / tileMap.width) * 80 - 3,
-                top: (creature.tileY / tileMap.height) * 60 - 3,
+                left: (creature.tileX / tileMap.width) * 100 - 4,
+                top: (creature.tileY / tileMap.height) * 75 - 4,
               }}
             />
           ))}
