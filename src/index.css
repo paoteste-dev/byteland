@@ -515,3 +515,24 @@
   0%, 100% { transform: rotate(-3deg); }
   50% { transform: rotate(3deg); }
 }
+
+/* Pokemon-style animations */
+@keyframes pokemon-walk {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-2px); }
+}
+
+@keyframes water-wave {
+  0% { transform: translateX(0); }
+  100% { transform: translateX(16px); }
+}
+
+@keyframes arm-swing-slow {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(15deg); }
+}
+
+@keyframes arm-swing-slow-reverse {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-15deg); }
+}

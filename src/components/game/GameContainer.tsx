@@ -6,6 +6,7 @@ import { WorldMapScreen } from './WorldMapScreen';
 import { RegionScreen } from './RegionScreen';
 import { TileExplorationScreen } from './TileExplorationScreen';
 import { PokemonMapScreen } from './PokemonMapScreen';
+import { PokemonExplorationScreen } from './PokemonExplorationScreen';
 import { CombatScreen } from './CombatScreen';
 import { CollectionScreen } from './CollectionScreen';
 import { EncyclopediaScreen } from './EncyclopediaScreen';
@@ -27,7 +28,7 @@ function GameScreens() {
     case 'exploration':
       return <TileExplorationScreen />;
     case 'pokemon-exploration':
-      return <PokemonMapScreen />;
+      return <PokemonExplorationScreen />;
     case 'combat':
       return <CombatScreen />;
     case 'collection':
