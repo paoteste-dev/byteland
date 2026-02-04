@@ -214,7 +214,7 @@ export function PokemonMapScreen() {
                       relative select-none
                       transition-colors duration-100
                     `}
-                    whileHover={{ brightness: 1.1 }}
+                    whileHover={{ scale: 1.02 }}
                   >
                     {/* NPC no tile */}
                     {npcHere && (
