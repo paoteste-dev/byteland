@@ -536,3 +536,98 @@
   0%, 100% { transform: rotate(0deg); }
   50% { transform: rotate(-15deg); }
 }
+
+/* CyberHero animations */
+@keyframes cyber-walk {
+  0%, 100% { transform: translateY(0); }
+  25% { transform: translateY(-2px); }
+  75% { transform: translateY(-2px); }
+}
+
+@keyframes leg-walk-left {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-20deg); }
+}
+
+@keyframes leg-walk-right {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(20deg); }
+}
+
+@keyframes arm-cyber-left {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(25deg); }
+}
+
+@keyframes arm-cyber-right {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(-25deg); }
+}
+
+@keyframes visor-glow {
+  0%, 100% { 
+    box-shadow: 0 0 8px hsl(180, 100%, 50%), 0 0 12px hsl(200, 100%, 50%, 0.5);
+    filter: brightness(1);
+  }
+  50% { 
+    box-shadow: 0 0 12px hsl(180, 100%, 60%), 0 0 20px hsl(200, 100%, 60%, 0.7);
+    filter: brightness(1.2);
+  }
+}
+
+@keyframes visor-scan {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+/* Grass encounter animations */
+@keyframes grass-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-2px); }
+  40% { transform: translateX(2px); }
+  60% { transform: translateX(-2px); }
+  80% { transform: translateX(1px); }
+}
+
+@keyframes grass-blade {
+  0%, 100% { transform: rotate(var(--base-rotation, 0deg)); }
+  25% { transform: rotate(calc(var(--base-rotation, 0deg) - 8deg)); }
+  75% { transform: rotate(calc(var(--base-rotation, 0deg) + 8deg)); }
+}
+
+/* Water animations */
+@keyframes water-shimmer {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(-12px); }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0.3; transform: scale(0.8); }
+  50% { opacity: 1; transform: scale(1.2); }
+}
+
+@keyframes foam {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-1px); }
+}
+
+/* Flower animation */
+@keyframes flower-sway {
+  0%, 100% { transform: rotate(-3deg); }
+  50% { transform: rotate(3deg); }
+}
+
+/* Utility classes for animations */
+.animate-cyber-walk { animation: cyber-walk 0.25s ease-in-out infinite; }
+.animate-leg-walk-left { animation: leg-walk-left 0.25s ease-in-out infinite; }
+.animate-leg-walk-right { animation: leg-walk-right 0.25s ease-in-out infinite alternate; }
+.animate-arm-cyber-left { animation: arm-cyber-left 0.3s ease-in-out infinite; }
+.animate-arm-cyber-right { animation: arm-cyber-right 0.3s ease-in-out infinite; }
+.animate-visor-glow { animation: visor-glow 2s ease-in-out infinite; }
+.animate-visor-scan { animation: visor-scan 2s linear infinite; }
+.animate-grass-shake { animation: grass-shake 0.3s ease-in-out infinite; }
+.animate-grass-blade { animation: grass-blade 0.4s ease-in-out infinite; }
+.animate-water-shimmer { animation: water-shimmer 3s linear infinite; }
+.animate-twinkle { animation: twinkle 1.5s ease-in-out infinite; }
+.animate-foam { animation: foam 1s ease-in-out infinite; }
+.animate-flower-sway { animation: flower-sway 2s ease-in-out infinite; }
