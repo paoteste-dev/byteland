@@ -617,6 +617,18 @@
   50% { transform: rotate(3deg); }
 }
 
+/* Enemy animations */
+@keyframes enemy-shake {
+  0%, 100% { transform: translateX(0) rotate(0deg); }
+  25% { transform: translateX(-2px) rotate(-3deg); }
+  75% { transform: translateX(2px) rotate(3deg); }
+}
+
+@keyframes scroll-text {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
 /* Utility classes for animations */
 .animate-cyber-walk { animation: cyber-walk 0.25s ease-in-out infinite; }
 .animate-leg-walk-left { animation: leg-walk-left 0.25s ease-in-out infinite; }
@@ -631,3 +643,5 @@
 .animate-twinkle { animation: twinkle 1.5s ease-in-out infinite; }
 .animate-foam { animation: foam 1s ease-in-out infinite; }
 .animate-flower-sway { animation: flower-sway 2s ease-in-out infinite; }
+.animate-enemy-shake { animation: enemy-shake 0.5s ease-in-out infinite; }
+.animate-scroll-text { animation: scroll-text 0.3s ease-in-out infinite; }
