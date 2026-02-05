@@ -5,7 +5,10 @@ import { ArrowLeft, Volume2, VolumeX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { DetailedTile, DetailedTileType } from '@/components/game/tiles/DetailedTile';
 import { CyberHero } from '@/components/game/characters/CyberHero';
+import { MapEnemy, EnemyType } from '@/components/game/characters/MapEnemy';
 import { TILE_SIZE } from '@/data/tileMapConfig';
+import { starterDefendos } from '@/data/defendos';
+import { CombatState, Enemy } from '@/data/gameTypes';
 
 const MOVEMENT_SPEED = 120;
 
@@ -319,10 +322,57 @@ export function PokemonExplorationScreen() {
     } catch (e) {}
   }, [soundEnabled]);
 
+  // Get enemy data based on type
+  const getEnemyData = useCallback((enemyType: EnemyType): Enemy => {
+    const enemyMap: Record<EnemyType, Enemy> = {
+      'phishling': {
+        id: 'phishling',
+        name: 'Phishling',
+        type: 'social',
+        description: 'Uma criatura enganadora que envia mensagens falsas.',
+        stats: { hp: 30, maxHp: 30, attack: 10, defense: 6, speed: 8 },
+        abilities: ['Email Falso', 'Link Suspeito'],
+        sprite: 'phishling',
+        isBoss: false
+      },
+      'clickbaiter': {
+        id: 'clickbaiter',
+        name: 'ClickBaiter',
+        type: 'social',
+        description: 'Um trapaceiro que atrai cliques com promessas falsas.',
+        stats: { hp: 25, maxHp: 25, attack: 8, defense: 5, speed: 10 },
+        abilities: ['Isca Digital', 'Promessa Vazia'],
+        sprite: 'clickbaiter',
+        isBoss: false
+      },
+      'spambot': {
+        id: 'spambot',
+        name: 'SpamBot',
+        type: 'network',
+        description: 'Um robô que envia spam sem parar.',
+        stats: { hp: 28, maxHp: 28, attack: 9, defense: 7, speed: 11 },
+        abilities: ['Flood de Mensagens', 'Caixa Cheia'],
+        sprite: 'spambot',
+        isBoss: false
+      },
+      'malware': {
+        id: 'malware',
+        name: 'Malware Entity',
+        type: 'malware',
+        description: 'Uma entidade corrompida que infecta sistemas.',
+        stats: { hp: 35, maxHp: 35, attack: 12, defense: 8, speed: 9 },
+        abilities: ['Infecção', 'Corrupção de Dados'],
+        sprite: 'malware',
+        isBoss: false
+      }
+    };
+    return enemyMap[enemyType];
+  }, []);
+
   // Check for encounter
   const checkEncounter = useCallback((pos: Position) => {
     const encounter = encounters.find(e => e.x === pos.x && e.y === pos.y && e.active);
-    if (encounter) {
+    if (encounter && player && player.team.length > 0) {
       // Remove encounter from list
       setEncounters(prev => prev.map(e => 
         e.x === pos.x && e.y === pos.y ? { ...e, active: false } : e
@@ -337,12 +387,22 @@ export function PokemonExplorationScreen() {
       setTimeout(() => playSound(400, 100, 'sawtooth'), 100);
       setTimeout(() => playSound(500, 150, 'sawtooth'), 200);
       
-      // After animation, go to combat
+      // After animation, start combat with proper state
       setTimeout(() => {
-        dispatch({ type: 'SET_SCREEN', payload: 'combat' });
+        const enemyData = getEnemyData(encounter.enemyType);
+        const combatState: CombatState = {
+          playerDefendo: player.team[0],
+          enemyDefendo: enemyData,
+          turn: 'player',
+          isCaptureBattle: false,
+          questionsAnswered: 0,
+          correctAnswers: 0,
+          battleLog: [`Um ${enemyData.name} selvagem apareceu!`]
+        };
+        dispatch({ type: 'START_COMBAT', payload: combatState });
       }, 1500);
     }
-  }, [encounters, playSound, dispatch]);
+  }, [encounters, playSound, dispatch, player, getEnemyData]);
 
   // Movement logic
   const attemptMove = useCallback((dir: 'up' | 'down' | 'left' | 'right') => {
@@ -598,6 +658,17 @@ export function PokemonExplorationScreen() {
               );
             })
           )}
+
+          {/* Render CSS-animated enemies on map */}
+          {encounters.filter(e => e.active).map((encounter, i) => (
+            <MapEnemy
+              key={`enemy-${encounter.x}-${encounter.y}-${i}`}
+              x={encounter.x}
+              y={encounter.y}
+              type={encounter.enemyType}
+              isShaking={true}
+            />
+          ))}
 
           {/* NPCs */}
           {mapData.npcs.map(npc => (
